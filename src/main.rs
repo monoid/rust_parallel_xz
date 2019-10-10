@@ -22,7 +22,7 @@ fn main() {
     let pool = ThreadPool::new(nthread);
 
     let writer = thread::spawn(move || {
-        writer::writer_loop(&mut io::stdout(), task_sendr, free_recvr);
+        writer::writer_loop(&mut io::stdout(), task_sendr, free_recvr)
     });
 
     // Keep reference to channel before writer is complete
@@ -38,7 +38,10 @@ fn main() {
     };
 
     match writer.join() {
-        Err(e) => println!("OOPS: {:?}", e),
-        _ => {}
+        Err(e) => panic!("OOPS: {:?}", e),
+        Ok(v) => match v {
+            Err(e) => panic!("OOPS: {:?}", e),
+            _ => {}
+        }
     }
 }

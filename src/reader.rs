@@ -28,15 +28,15 @@ pub fn reader_thread(
     out_que: TaskSender,
     pool: ThreadPool,
     compress_level: u32  // TODO compressor factory instead
-) -> Result<FreeDataQueueReceiver, ReaderThreadError> {
+) -> Result<FreeDataQueueReceiver, ApplicationError> {
     // This flag prevents from sending final empty chunk if file is not empty
     let mut has_any_data = false;
     loop {
         let buf = inp_que.recv();
         match buf {
-            Err(e) => { return Err(ReaderThreadError::MpscRecvError(e)) },
+            Err(e) => { return Err(ApplicationError::MpscRecvError(e)) },
             Ok(mut buf) => {
-                let result = input.read(&mut buf.data).or_else(|e| Err(ReaderThreadError::IOError(e))).and_then(|length| {
+                let result = input.read(&mut buf.data).or_else(|e| Err(ApplicationError::IOError(e))).and_then(|length| {
                     if length == 0 && has_any_data {
                         Ok(length)
                     } else {
@@ -47,12 +47,12 @@ pub fn reader_thread(
                         );
                         let comp_result1 = comp_result.clone();
                         pool.execute(move || {
-                            compress_data(task, comp_result1, compress_level).unwrap()
+                            compress_data(task, comp_result1, compress_level);
                         });
                         has_any_data = true;
                         out_que.send(CompressChunk::Data(comp_result))
                             .and(Ok(length))
-                            .or_else(|e| Err(ReaderThreadError::MpscSendError(e)))
+                            .or(Err(ApplicationError::MpscSendError))
                     }
                 });
                 match result {
@@ -60,7 +60,11 @@ pub fn reader_thread(
                         out_que.send(CompressChunk::Eof).unwrap();
                         return Ok(inp_que)
                     } }
-                    Err(e) => { return Err(e); }
+                    Err(e) => { 
+                        // TODO: deside who handles e: out_que receiver or by caller of this func
+                        out_que.send(CompressChunk::Error(ApplicationError::ErrorElsewhere)).unwrap();
+                        return Err(e);
+                    }
                 };
             }
         }

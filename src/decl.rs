@@ -5,7 +5,17 @@ pub const DEFAULT_NTHREAD : usize = 4;
 use std::io;
 use std::mem;
 use std::sync::{Arc, Condvar, Mutex};
-use std::sync::mpsc::{Receiver, SyncSender, SendError, RecvError};
+use std::sync::mpsc::{Receiver, SyncSender, RecvError};
+
+
+#[derive(Debug)]
+pub enum ApplicationError {
+    IOError(io::Error),
+    MutexError,
+    MpscSendError,
+    MpscRecvError(RecvError),
+    ErrorElsewhere // KLUDGE to avoid copying io::Error (wrap it with Arc?)
+}
 
 
 pub type InputData = Vec<u8>;
@@ -18,11 +28,12 @@ pub struct InputBuf {
 
 pub struct CompressResult {
     condvar: Condvar,
-    mutex: Mutex<Option<(InputData, OutputData)>>
+    mutex: Mutex<Option<Result<(InputData, OutputData), ApplicationError>>>
 }
 
 pub enum CompressChunk {
     Eof,
+    Error(ApplicationError),
     Data(Arc<CompressResult>)
 }
 
@@ -43,20 +54,31 @@ impl CompressResult {
         }
     }
 
-    pub fn wait(&self) -> (InputData, OutputData) {
-        let mut complete = self.mutex.lock().unwrap();
-        while *complete == None {
-            complete = self.condvar.wait(complete).unwrap();
-        }
-
-        let mut holder = None;
-        mem::swap(&mut holder, &mut *complete);
-        holder.unwrap()
+    pub fn wait(&self) -> Result<(InputData, OutputData), ApplicationError> {
+        self.mutex.lock().or(
+            Err(ApplicationError::MutexError)
+        ).and_then(|mut complete| {
+            while (*complete).is_none() {
+                complete = self.condvar.wait(complete).unwrap();
+            }
+            let mut holder = None;
+            mem::swap(&mut holder, &mut *complete);
+            match holder {
+                Some(v) => v,
+                None => unreachable!()
+            }
+        })
     }
 
     pub fn notify(&self, input: InputData, result: OutputData) {
         let mut complete = self.mutex.lock().unwrap();
-        *complete = Some((input, result));
+        *complete = Some(Ok((input, result)));
+        self.condvar.notify_one();
+    }
+
+    pub fn notify_error(&self, err: ApplicationError) {
+        let mut complete = self.mutex.lock().unwrap();
+        *complete = Some(Err(err));
         self.condvar.notify_one();
     }
 }
@@ -77,11 +99,3 @@ pub type FreeDataQueueSender = SyncSender<InputBuf>;
 
 pub type TaskReceiver = Receiver<CompressChunk>;
 pub type TaskSender = SyncSender<CompressChunk>;
-
-
-#[derive(Debug)]
-pub enum ReaderThreadError {
-    IOError(io::Error),
-    MpscSendError(SendError<CompressChunk>),
-    MpscRecvError(RecvError)
-}

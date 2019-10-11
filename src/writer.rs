@@ -2,8 +2,8 @@ use super::decl::*;
 use std::io::Write;
 
 
-pub fn writer_loop(
-    output: &mut dyn Write,
+pub fn writer_loop<W: Write>(
+    output: &mut W,
     inp_que: TaskReceiver,
     out_que: FreeDataQueueSender
 ) -> Result<(), ApplicationError> {
@@ -11,20 +11,12 @@ pub fn writer_loop(
         let task = inp_que.recv().unwrap();
         match task {
             CompressChunk::Data(task) => {
-                let write_result = task.wait().or(Err(ApplicationError::MutexError)
-                      ).and_then(|(buf, result)|
-                        output.write(result.as_slice()).or_else(
-                           |e| Err(ApplicationError::IOError(e))
-                        ).and_then(|_|
-                            output.flush().or_else(|e| Err(ApplicationError::IOError(e)))
-                        ).and_then(|_|
-                            out_que.send(InputBuf{ data: buf, result: result }).or(Err(ApplicationError::MpscSendError))
-                        )
-                    );
-                match write_result {
-                    Err(e) => break Err(e),
-                    _ => {}
-                }
+                let (buf, result) = task.wait().or(Err(ApplicationError::MutexError))?;
+                output.write(result.as_slice()).or_else(
+                    |e| Err(ApplicationError::IOError(e))
+                )?;
+                output.flush().or_else(|e| Err(ApplicationError::IOError(e)))?;
+                out_que.send(InputBuf{ data: buf, result: result }).or(Err(ApplicationError::MpscSendError))?;
             },
             CompressChunk::Eof => break Ok(()),
             CompressChunk::Error(e) => break Err(e),

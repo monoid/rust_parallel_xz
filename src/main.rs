@@ -26,22 +26,13 @@ fn main() {
     });
 
     // Keep reference to channel before writer is complete
-    let _v = match reader::reader_thread(
+    let _v = reader::reader_thread(
         &mut io::stdin(),
         free_sendr,
         task_recvr,
         pool,
         compress_level
-    ) {
-        Ok(v) => v,
-        Err(e) => panic!("OOPS: {:?}", e)
-    };
+    ).expect("OOPS");
 
-    match writer.join() {
-        Err(e) => panic!("OOPS: {:?}", e),
-        Ok(v) => match v {
-            Err(e) => panic!("OOPS: {:?}", e),
-            _ => {}
-        }
-    }
+    writer.join().expect("OOPS").expect("OOPS");
 }

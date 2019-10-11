@@ -55,19 +55,16 @@ impl CompressResult {
     }
 
     pub fn wait(&self) -> Result<(InputData, OutputData), ApplicationError> {
-        self.mutex.lock().or(
+        let mut complete = self.mutex.lock().or(
             Err(ApplicationError::MutexError)
-        ).and_then(|mut complete| {
-            while (*complete).is_none() {
-                complete = self.condvar.wait(complete).unwrap();
-            }
-            let mut holder = None;
-            mem::swap(&mut holder, &mut *complete);
-            match holder {
-                Some(v) => v,
-                None => unreachable!()
-            }
-        })
+        )?;
+        while (*complete).is_none() {
+            complete = self.condvar.wait(complete).unwrap();
+        }
+
+        let mut holder = None;
+        mem::swap(&mut holder, &mut *complete);
+        holder.unwrap()
     }
 
     pub fn notify(&self, input: InputData, result: OutputData) {

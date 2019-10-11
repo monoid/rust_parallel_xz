@@ -31,41 +31,36 @@ pub fn reader_thread(
 ) -> Result<FreeDataQueueReceiver, ApplicationError> {
     // This flag prevents from sending final empty chunk if file is not empty
     let mut has_any_data = false;
+
     loop {
-        let buf = inp_que.recv();
-        match buf {
-            Err(e) => { return Err(ApplicationError::MpscRecvError(e)) },
+        match inp_que.recv().map_err(
+            |e| ApplicationError::MpscRecvError(e)) {
             Ok(mut buf) => {
-                let result = input.read(&mut buf.data).or_else(|e| Err(ApplicationError::IOError(e))).and_then(|length| {
-                    if length == 0 && has_any_data {
-                        Ok(length)
-                    } else {
-                        let result = buf.result;
-                        let task = CompressTask::new(buf.data, length, result);
-                        let comp_result = Arc::new(
-                            CompressResult::new()
-                        );
-                        let comp_result1 = comp_result.clone();
-                        pool.execute(move || {
-                            compress_data(task, comp_result1, compress_level);
-                        });
-                        has_any_data = true;
-                        out_que.send(CompressChunk::Data(comp_result))
-                            .and(Ok(length))
-                            .or(Err(ApplicationError::MpscSendError))
-                    }
-                });
-                match result {
-                    Ok(len) => { if len == 0 {
-                        out_que.send(CompressChunk::Eof).unwrap();
-                        return Ok(inp_que)
-                    } }
-                    Err(e) => { 
-                        // TODO: deside who handles e: out_que receiver or by caller of this func
-                        out_que.send(CompressChunk::Error(ApplicationError::ErrorElsewhere)).unwrap();
-                        return Err(e);
-                    }
-                };
+                let length = input.read(&mut buf.data).map_err(|e| ApplicationError::IOError(e))?;
+                if length == 0 && has_any_data {
+                    out_que.send(CompressChunk::Eof).unwrap();
+                    return Ok(inp_que)
+                } else {
+                    let result = buf.result;
+                    let task = CompressTask::new(buf.data, length, result);
+                    let comp_result = Arc::new(
+                        CompressResult::new()
+                    );
+                    let comp_result1 = comp_result.clone();
+                    pool.execute(move || {
+                        compress_data(task, comp_result1, compress_level);
+                    });
+                    has_any_data = true;
+                    out_que.send(CompressChunk::Data(comp_result))
+                        .or(Err(ApplicationError::MpscSendError))?;
+                }
+            },
+            Err(e) => {
+                // TODO: deside who handles e: out_que receiver or by caller of this func
+                out_que.send(CompressChunk::Error(
+                    ApplicationError::ErrorElsewhere)).unwrap();
+                return Err(e);
+                
             }
         }
     }

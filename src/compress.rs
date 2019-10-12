@@ -17,7 +17,7 @@ pub fn compress_data(task: CompressTask, comp_result: Arc<CompressFuture>, level
     comp_result.notify(
         enc.write(bytes)
             .and_then(|_| enc.finish())
-            .map_err(|e| ApplicationError::IOError(e))
             .and_then(|result| Ok((data, result)))
+            .map_err(|e| ApplicationError::IOError(e))
     );
 }

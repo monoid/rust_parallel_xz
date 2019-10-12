@@ -22,8 +22,8 @@ pub fn init_task_queue(cpu_count: usize) -> (WriterDataSender, WriterDataReceive
     mpsc::sync_channel(cpu_count)
 }
 
-pub fn reader_thread(
-    input: &mut dyn Read,
+pub fn reader_thread<R: Read>(
+    input: &mut R,
     inp_que: SpareDataQueueReceiver,
     out_que: WriterDataSender,
     pool: ThreadPool,
@@ -35,8 +35,8 @@ pub fn reader_thread(
     (inp_que, loop_result)
 }
 
-fn the_loop(
-    input: &mut dyn Read,
+fn the_loop<R: Read>(
+    input: &mut R,
     inp_que: &SpareDataQueueReceiver,
     out_que: &WriterDataSender,
     pool: &ThreadPool,

@@ -13,11 +13,11 @@ pub fn compress_data(task: CompressTask, comp_result: Arc<CompressFuture>, level
     
     let mut enc = XzEncoder::new(result, level);
     let (bytes, _) = data.as_slice().split_at(task.length);
-    let enc_result = enc.write(bytes).and_then(
-        |_| enc.finish()
+
+    comp_result.notify(
+        enc.write(bytes)
+            .and_then(|_| enc.finish())
+            .map_err(|e| ApplicationError::IOError(e))
+            .and_then(|result| Ok((data, result)))
     );
-    match enc_result {
-        Ok(result) => comp_result.notify(data, result),
-        Err(err) => comp_result.notify_error(ApplicationError::IOError(err))
-    }
 }

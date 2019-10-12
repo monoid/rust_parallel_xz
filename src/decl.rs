@@ -60,15 +60,9 @@ impl CompressFuture {
         holder.unwrap()
     }
 
-    pub fn notify(&self, input: InputData, result: OutputData) {
+    pub fn notify(&self, result: Result<(InputData, OutputData), ApplicationError>) {
         let mut complete = self.mutex.lock().unwrap();
-        *complete = Some(Ok((input, result)));
-        self.condvar.notify_one();
-    }
-
-    pub fn notify_error(&self, err: ApplicationError) {
-        let mut complete = self.mutex.lock().unwrap();
-        *complete = Some(Err(err));
+        *complete = Some(result);
         self.condvar.notify_one();
     }
 }

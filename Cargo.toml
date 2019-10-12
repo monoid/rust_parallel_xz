@@ -8,5 +8,6 @@ edition = "2018"
 
 [dependencies]
 clap = "2.33.0"
+num_cpus = "1.10.1"
 threadpool = "1.7.1"
 xz2 = "0.1.6"

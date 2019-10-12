@@ -10,7 +10,6 @@ use clap::{Arg, App};
 
 const DEFAULT_COMPRESS_LEVEL: u32 = 3;
 const DEFAULT_BUFFER_SIZE : usize = 1 << 20;
-const DEFAULT_NTHREAD : usize = 4;
 
 
 fn main() {
@@ -21,17 +20,17 @@ fn main() {
              .short("t")
              .long("threads-num")
              .takes_value(true)
-             .help("Compression thread number"))
+             .help("Compression threads number (default: number of CPUs + 1)"))
         .arg(Arg::with_name("buffer_size")
              .short("b")
              .long("buffer-size")
              .takes_value(true)
-             .help("Buffer size for each thread in megabytes"))
+             .help("Buffer size for each thread in megabytes (default: 1)"))
         .arg(Arg::with_name("compress_level")
              .short("c")
              .long("compress-level")
              .takes_value(true)
-             .help("XZ compression level"))
+             .help("XZ compression level (default: 3)"))
         .get_matches();
 
     let compress_level = match matches.value_of("compress_level") {
@@ -39,7 +38,7 @@ fn main() {
         Some(s) => s.parse::<u32>().expect("Malformed compress-level")
     };
     let nthread = match matches.value_of("threads_num") {
-        None => DEFAULT_NTHREAD,
+        None => num_cpus::get() + 1,
         Some(s) => s.parse::<usize>().expect("Malformed threads-num")
     };
     let buffer_size = match matches.value_of("buffer_size") {

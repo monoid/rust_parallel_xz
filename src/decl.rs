@@ -1,7 +1,3 @@
-// pub const DEFAULT_BUFFER_SIZE : usize = 1 << 16;
-pub const DEFAULT_BUFFER_SIZE : usize = 1 << 20;
-pub const DEFAULT_NTHREAD : usize = 4;
-
 use std::io;
 use std::mem;
 use std::sync::{Arc, Condvar, Mutex};

@@ -3,18 +3,53 @@ mod reader;
 mod writer;
 mod compress;
 
-use crate::decl::*;
 use std::io;
 use threadpool::ThreadPool;
 use std::thread;
+use clap::{Arg, App};
+
+const DEFAULT_COMPRESS_LEVEL: u32 = 3;
+const DEFAULT_BUFFER_SIZE : usize = 1 << 20;
+const DEFAULT_NTHREAD : usize = 4;
 
 
 fn main() {
-    let compress_level = 3;
-    let nthread = DEFAULT_NTHREAD;
+    let matches = App::new("Parallel XZ compressor")
+        .version("0.1.0")
+        .author("Ivan Boldyrev <lispnik@gmail.com>")
+        .arg(Arg::with_name("threads_num")
+             .short("t")
+             .long("threads-num")
+             .takes_value(true)
+             .help("Compression thread number"))
+        .arg(Arg::with_name("buffer_size")
+             .short("b")
+             .long("buffer-size")
+             .takes_value(true)
+             .help("Buffer size for each thread in megabytes"))
+        .arg(Arg::with_name("compress_level")
+             .short("c")
+             .long("compress-level")
+             .takes_value(true)
+             .help("XZ compression level"))
+        .get_matches();
+
+    let compress_level = match matches.value_of("compress_level") {
+        None => DEFAULT_COMPRESS_LEVEL,
+        Some(s) => s.parse::<u32>().expect("Malformed compress-level")
+    };
+    let nthread = match matches.value_of("threads_num") {
+        None => DEFAULT_NTHREAD,
+        Some(s) => s.parse::<usize>().expect("Malformed threads-num")
+    };
+    let buffer_size = match matches.value_of("buffer_size") {
+        None => DEFAULT_BUFFER_SIZE,
+        Some(s) => 1024 * 1024 * s.parse::<usize>().expect("Malformed buffer-size")
+    };
+
     
     let (free_recvr, free_sendr) = reader::init_free_data_queue(
-        DEFAULT_BUFFER_SIZE,
+        buffer_size,
         // nthreads + 1 for reader, and 1 for writer, the queue
         // is filled only at its start position and at end.
         nthread + 2

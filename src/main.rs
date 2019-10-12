@@ -15,7 +15,9 @@ fn main() {
     
     let (free_recvr, free_sendr) = reader::init_free_data_queue(
         DEFAULT_BUFFER_SIZE,
-        nthread + 1
+        // nthreads + 1 for reader, and 1 for writer, the queue
+        // is filled only at its start position and at end.
+        nthread + 2
     );
     let (task_recvr, task_sendr) = reader::init_task_queue(nthread + 1);
 
@@ -26,7 +28,7 @@ fn main() {
     });
 
     // Keep reference to channel before writer is complete
-    let _v = reader::reader_thread(
+    let _task_recvr = reader::reader_thread(
         &mut io::stdin(),
         free_sendr,
         task_recvr,

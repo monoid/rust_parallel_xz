@@ -17,20 +17,20 @@ pub enum ApplicationError {
 pub type InputData = Vec<u8>;
 pub type OutputData = Vec<u8>;
 
-pub struct InputBuf {
+pub struct SpareData {
     pub data: InputData,
     pub result: OutputData,
 }
 
-pub struct CompressResult {
+pub struct CompressFuture {
     condvar: Condvar,
     mutex: Mutex<Option<Result<(InputData, OutputData), ApplicationError>>>
 }
 
-pub enum CompressChunk {
+pub enum WriterData {
     Eof,
     Error(ApplicationError),
-    Data(Arc<CompressResult>)
+    Data(Arc<CompressFuture>)
 }
 
 pub struct CompressTask {
@@ -39,14 +39,11 @@ pub struct CompressTask {
     pub result: OutputData,
 }
 
-impl CompressResult {
-    pub fn new() -> CompressResult {
-        let mutex = Mutex::new(None);
-        let condvar = Condvar::new();
-
-        CompressResult {
-            mutex: mutex,
-            condvar: condvar,
+impl CompressFuture {
+    pub fn new() -> CompressFuture {
+        CompressFuture {
+            mutex: Mutex::new(None),
+            condvar: Condvar::new(),
         }
     }
 
@@ -87,8 +84,8 @@ impl CompressTask {
 }
 
 
-pub type FreeDataQueueReceiver = Receiver<InputBuf>;
-pub type FreeDataQueueSender = SyncSender<InputBuf>;
+pub type SpareDataQueueReceiver = Receiver<SpareData>;
+pub type SpareDataQueueSender = SyncSender<SpareData>;
 
-pub type TaskReceiver = Receiver<CompressChunk>;
-pub type TaskSender = SyncSender<CompressChunk>;
+pub type WriterDataReceiver = Receiver<WriterData>;
+pub type WriterDataSender = SyncSender<WriterData>;

@@ -6,7 +6,7 @@ use xz2::write::XzEncoder;
 
 
 /* Execute CompressTask. */
-pub fn compress_data(task: CompressTask, comp_result: Arc<CompressResult>, level: u32) {
+pub fn compress_data(task: CompressTask, comp_result: Arc<CompressFuture>, level: u32) {
     let data = task.data;
     let mut result = task.result;
     result.clear();

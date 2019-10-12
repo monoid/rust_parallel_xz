@@ -28,7 +28,20 @@ pub fn reader_thread(
     out_que: WriterDataSender,
     pool: ThreadPool,
     compress_level: u32  // TODO compressor factory instead
-) -> Result<SpareDataQueueReceiver, ApplicationError> {
+) -> (SpareDataQueueReceiver, Result<(), ApplicationError>) {
+    let loop_result = the_loop(
+        input, &inp_que, &out_que, &pool, compress_level
+    );
+    (inp_que, loop_result)
+}
+
+fn the_loop(
+    input: &mut dyn Read,
+    inp_que: &SpareDataQueueReceiver,
+    out_que: &WriterDataSender,
+    pool: &ThreadPool,
+    compress_level: u32
+) -> Result<(), ApplicationError> {
     // This flag prevents from sending final empty chunk if file is not empty
     let mut has_any_data = false;
 
@@ -39,7 +52,7 @@ pub fn reader_thread(
                 let length = input.read(&mut buf.data).map_err(|e| ApplicationError::IOError(e))?;
                 if length == 0 && has_any_data {
                     out_que.send(WriterData::Eof).unwrap();
-                    return Ok(inp_que)
+                    return Ok(())
                 } else {
                     let result = buf.result;
                     let task = CompressTask::new(buf.data, length, result);

@@ -62,13 +62,14 @@ fn main() {
     });
 
     // Keep reference to channel before writer is complete
-    let _task_recvr = reader::reader_thread(
+    let (_task_recvr, reader_result) = reader::reader_thread(
         &mut io::stdin(),
         free_sendr,
         task_recvr,
         pool,
         compress_level
-    ).expect("OOPS");
+    );
+    reader_result.expect("OOPS");
 
     writer.join().expect("OOPS").expect("OOPS");
 }

@@ -47,7 +47,7 @@ fn main() {
     };
 
     
-    let (free_recvr, free_sendr) = reader::init_free_data_queue(
+    let (free_recvr, free_sendr) = reader::init_spare_queue(
         buffer_size,
         // nthreads + 1 for reader, and 1 for writer, the queue
         // is filled only at its start position and at end.
@@ -62,7 +62,7 @@ fn main() {
     });
 
     // Keep reference to channel before writer is complete
-    let (_task_recvr, reader_result) = reader::reader_thread(
+    let (_task_recvr, reader_result) = reader::reader_loop(
         &mut io::stdin(),
         free_sendr,
         task_recvr,

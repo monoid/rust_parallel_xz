@@ -8,7 +8,7 @@ use std::sync::Arc;
 use threadpool::ThreadPool;
 
 
-pub fn init_free_data_queue(buffer_size: usize, cpu_count: usize) -> (SpareDataQueueSender, SpareDataQueueReceiver) {
+pub fn init_spare_queue(buffer_size: usize, cpu_count: usize) -> (SpareDataQueueSender, SpareDataQueueReceiver) {
     let (send, recv) = mpsc::sync_channel(cpu_count);
     for _ in 0..cpu_count {
         let mut data: Vec<u8> = Vec::with_capacity(buffer_size);
@@ -22,18 +22,18 @@ pub fn init_task_queue(cpu_count: usize) -> (WriterDataSender, WriterDataReceive
     mpsc::sync_channel(cpu_count)
 }
 
-pub fn reader_thread<R: Read>(
+pub fn reader_loop<R: Read>(
     input: &mut R,
     inp_que: SpareDataQueueReceiver,
     out_que: WriterDataSender,
     pool: ThreadPool,
     compress_level: u32  // TODO compressor factory instead
 ) -> (SpareDataQueueReceiver, Result<(), ApplicationError>) {
-    let res = reader_loop(input, &inp_que, out_que, pool, compress_level);
+    let res = reader_loop_nested(input, &inp_que, out_que, pool, compress_level);
     (inp_que, res)
 }
 
-fn reader_loop<R: Read>(
+fn reader_loop_nested<R: Read>(
     input: &mut R,
     inp_que: &SpareDataQueueReceiver,
     out_que: WriterDataSender,

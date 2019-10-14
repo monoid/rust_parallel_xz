@@ -29,52 +29,39 @@ pub fn reader_thread<R: Read>(
     pool: ThreadPool,
     compress_level: u32  // TODO compressor factory instead
 ) -> (SpareDataQueueReceiver, Result<(), ApplicationError>) {
-    let loop_result = the_loop(
-        input, &inp_que, &out_que, &pool, compress_level
-    );
-    (inp_que, loop_result)
+    let res = reader_loop(input, &inp_que, out_que, pool, compress_level);
+    (inp_que, res)
 }
 
-fn the_loop<R: Read>(
+fn reader_loop<R: Read>(
     input: &mut R,
     inp_que: &SpareDataQueueReceiver,
-    out_que: &WriterDataSender,
-    pool: &ThreadPool,
+    out_que: WriterDataSender,
+    pool: ThreadPool,
     compress_level: u32
 ) -> Result<(), ApplicationError> {
     // This flag prevents from sending final empty chunk if file is not empty
     let mut has_any_data = false;
 
     loop {
-        match inp_que.recv().map_err(
-            |e| ApplicationError::MpscRecvError(e)) {
-            Ok(mut buf) => {
-                let length = input.read(&mut buf.data).map_err(|e| ApplicationError::IOError(e))?;
-                if length == 0 && has_any_data {
-                    out_que.send(WriterData::Eof).unwrap();
-                    return Ok(())
-                } else {
-                    let result = buf.result;
-                    let task = CompressTask::new(buf.data, length, result);
-                    let comp_result = Arc::new(
-                        CompressFuture::new()
-                    );
-                    let comp_result1 = comp_result.clone();
-                    pool.execute(move || {
-                        compress_data(task, comp_result1, compress_level);
-                    });
-                    has_any_data = true;
-                    out_que.send(WriterData::Data(comp_result))
-                        .or(Err(ApplicationError::MpscSendError))?;
-                }
-            },
-            Err(e) => {
-                // TODO: deside who handles e: out_que receiver or by caller of this func
-                out_que.send(WriterData::Error(
-                    ApplicationError::ErrorElsewhere)).unwrap();
-                return Err(e);
-                
-            }
+        let mut buf = inp_que.recv().map_err(
+            |e| ApplicationError::MpscRecvError(e))?;
+        let length = input.read(&mut buf.data).map_err(|e| ApplicationError::IOError(e))?;
+        if length == 0 && has_any_data {
+            return Ok(())
+        } else {
+            let result = buf.result;
+            let task = CompressTask::new(buf.data, length, result);
+            let comp_result = Arc::new(
+                CompressFuture::new()
+            );
+            let comp_result1 = comp_result.clone();
+            pool.execute(move || {
+                compress_data(task, comp_result1, compress_level);
+            });
+            has_any_data = true;
+            out_que.send(comp_result)
+                .or(Err(ApplicationError::MpscSendError))?;
         }
     }
 }

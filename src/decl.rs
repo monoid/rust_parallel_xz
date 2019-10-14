@@ -9,8 +9,7 @@ pub enum ApplicationError {
     IOError(io::Error),
     MutexError,
     MpscSendError,
-    MpscRecvError(RecvError),
-    ErrorElsewhere // KLUDGE to avoid copying io::Error (wrap it with Arc?)
+    MpscRecvError(RecvError)
 }
 
 
@@ -25,12 +24,6 @@ pub struct SpareData {
 pub struct CompressFuture {
     condvar: Condvar,
     mutex: Mutex<Option<Result<(InputData, OutputData), ApplicationError>>>
-}
-
-pub enum WriterData {
-    Eof,
-    Error(ApplicationError),
-    Data(Arc<CompressFuture>)
 }
 
 pub struct CompressTask {
@@ -81,5 +74,5 @@ impl CompressTask {
 pub type SpareDataQueueReceiver = Receiver<SpareData>;
 pub type SpareDataQueueSender = SyncSender<SpareData>;
 
-pub type WriterDataReceiver = Receiver<WriterData>;
-pub type WriterDataSender = SyncSender<WriterData>;
+pub type WriterDataReceiver = Receiver<Arc<CompressFuture>>;
+pub type WriterDataSender = SyncSender<Arc<CompressFuture>>;

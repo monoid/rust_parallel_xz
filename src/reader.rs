@@ -8,9 +8,9 @@ use std::sync::Arc;
 use threadpool::ThreadPool;
 
 
-pub fn init_spare_queue(buffer_size: usize, cpu_count: usize) -> (SpareDataQueueSender, SpareDataQueueReceiver) {
-    let (send, recv) = mpsc::sync_channel(cpu_count);
-    for _ in 0..cpu_count {
+pub fn init_spare_queue(buffer_size: usize, queue_size: usize) -> (SpareDataQueueSender, SpareDataQueueReceiver) {
+    let (send, recv) = mpsc::sync_channel(queue_size);
+    for _ in 0..queue_size {
         let mut data: Vec<u8> = Vec::with_capacity(buffer_size);
         data.resize(buffer_size, 0);
         send.send(SpareData{ data: data, result: Vec::new() }).unwrap();

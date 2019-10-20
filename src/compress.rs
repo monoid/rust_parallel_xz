@@ -9,7 +9,7 @@ pub fn compress_data(task: CompressTask, comp_result: Arc<CompressFuture>, level
     let data = task.data;
     let mut result = task.result;
     result.clear();
-    
+
     let mut enc = XzEncoder::new(result, level);
     let (bytes, _) = data.as_slice().split_at(task.length);
 
@@ -24,13 +24,41 @@ pub fn compress_data(task: CompressTask, comp_result: Arc<CompressFuture>, level
 
 #[cfg(test)]
 mod test {
-    use super::*;
+    use super::compress_data;
+    use super::super::decl::*;
+    use std::sync::Arc;
 
     #[test]
     fn test_empty() {
+        let comp_task = CompressTask {
+            data: Vec::new(),
+            length: 0,
+            result: Vec::new()
+        };
+        let comp_result = Arc::new(CompressFuture::new());
+
+        compress_data(comp_task, comp_result.clone(), 3);
+
+        let res = comp_result.wait();
+        assert!(res.is_ok());
+        let (_buf, data) = res.unwrap();
+        assert_eq!(data.len(), 32);  // Size of compressed empty chunk
     }
 
     #[test]
     fn test_data() {
+        let comp_task = CompressTask {
+            data: vec![0, 1, 2, 3, 4],
+            length: 5,
+            result: Vec::new()
+        };
+        let comp_result = Arc::new(CompressFuture::new());
+
+        compress_data(comp_task, comp_result.clone(), 3);
+
+        let res = comp_result.wait();
+        assert!(res.is_ok());
+        let (_buf, data) = res.unwrap();
+        assert_eq!(data.len(), 64);
     }
 }

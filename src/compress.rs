@@ -20,3 +20,17 @@ pub fn compress_data(task: CompressTask, comp_result: Arc<CompressFuture>, level
             .map_err(|e| ApplicationError::IOError(e))
     );
 }
+
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_empty() {
+    }
+
+    #[test]
+    fn test_data() {
+    }
+}

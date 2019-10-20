@@ -1,5 +1,7 @@
 use std::io;
 use std::mem;
+use std::fmt;
+use std::error::Error;
 use std::sync::{Arc, Condvar, Mutex};
 use std::sync::mpsc::{Receiver, SyncSender, RecvError};
 
@@ -12,6 +14,22 @@ pub enum ApplicationError {
     MpscRecvError(RecvError)
 }
 
+impl fmt::Display for ApplicationError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "ApplicationError: {}", self.description())
+    }
+}
+
+impl Error for ApplicationError {
+    fn description(&self) -> &str {
+        match *self {
+            ApplicationError::IOError(ref e) => e.description(),
+            ApplicationError::MutexError => "Internal error: mutex",
+            ApplicationError::MpscSendError => "Internal error: mpsc",
+            ApplicationError::MpscRecvError(ref e) => e.description(),
+        }
+    }
+}
 
 pub type InputData = Vec<u8>;
 pub type OutputData = Vec<u8>;

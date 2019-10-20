@@ -18,3 +18,69 @@ pub fn writer_loop<W: Write>(
     Ok(())
 }
     
+#[cfg(test)]
+mod tests {
+    use super::writer_loop;
+    use super::super::decl::*;
+    use std::sync::Arc;
+    use std::sync::mpsc;
+    use std::thread;
+    
+    #[test]
+    fn test_empty() {
+        let (writer_thread, _spare_reader) = {
+            let (spare_writer, spare_reader) = mpsc::sync_channel(4);
+            let (_task_writer, task_reader) = mpsc::sync_channel(4);
+
+            let writer_thread = thread::spawn(move || {
+                let mut output = Vec::<u8>::new();
+                writer_loop(
+                    &mut output,
+                    task_reader,
+                    spare_writer,
+                ).unwrap();
+                output
+            });
+            (writer_thread, spare_reader)
+        };
+        let data = writer_thread.join().unwrap();
+        assert_eq!(data.len(), 0);
+    }
+
+    #[test]
+    fn test_normal() {
+        let (writer_thread, _spare_reader) = {
+            let (spare_writer, spare_reader) = mpsc::sync_channel(4);
+            let (task_writer, task_reader) = mpsc::sync_channel(4);
+
+            let writer_thread: std::thread::JoinHandle<std::result::Result<std::vec::Vec<u8>, ApplicationError>> = thread::spawn(move || {
+                let mut output = Vec::<u8>::new();
+                writer_loop(
+                    &mut output,
+                    task_reader,
+                    spare_writer,
+                )?;
+                Ok(output)
+            });
+
+            let task = Arc::new(CompressFuture::new());
+            task.notify(
+                Ok((Vec::new(), vec![0, 1, 2, 3, 4, 5]))
+            );
+            task_writer.send(
+                task.clone()
+            ).unwrap();
+            (writer_thread, spare_reader)
+        };
+        let data = writer_thread.join().unwrap().unwrap();
+        assert_eq!(data.len(), 6);
+    }
+
+    #[test]
+    fn test_write_fail() {
+    }
+
+    #[test]
+    fn test_flush_fail() {
+    }
+}

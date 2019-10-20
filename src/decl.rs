@@ -1,5 +1,4 @@
 use std::io;
-use std::mem;
 use std::fmt;
 use std::error::Error;
 use std::sync::{Arc, Condvar, Mutex};
@@ -66,9 +65,7 @@ impl CompressFuture {
             complete = self.condvar.wait(complete).unwrap();
         }
 
-        let mut holder = None;
-        mem::swap(&mut holder, &mut *complete);
-        holder.unwrap()
+        (*complete).take().unwrap()
     }
 
     pub fn notify(&self, result: Result<(InputData, OutputData), ApplicationError>) {

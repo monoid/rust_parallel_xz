@@ -1,9 +1,8 @@
 use super::decl::*;
 
+use std::io::Write;
 use std::sync::Arc;
-use std::io::{Write};
 use xz2::write::XzEncoder;
-
 
 pub fn compress_data(task: CompressTask, comp_result: Arc<CompressFuture>, level: u32) {
     let data = task.data;
@@ -17,15 +16,14 @@ pub fn compress_data(task: CompressTask, comp_result: Arc<CompressFuture>, level
         enc.write(bytes)
             .and_then(|_| enc.finish())
             .and_then(|result| Ok((data, result)))
-            .map_err(|e| ApplicationError::IOError(e))
+            .map_err(|e| ApplicationError::IOError(e)),
     );
 }
 
-
 #[cfg(test)]
 mod test {
-    use super::compress_data;
     use super::super::decl::*;
+    use super::compress_data;
     use std::sync::Arc;
 
     #[test]
@@ -33,7 +31,7 @@ mod test {
         let comp_task = CompressTask {
             data: Vec::new(),
             length: 0,
-            result: Vec::new()
+            result: Vec::new(),
         };
         let comp_result = Arc::new(CompressFuture::new());
 
@@ -42,7 +40,7 @@ mod test {
         let res = comp_result.wait();
         assert!(res.is_ok());
         let (_buf, data) = res.unwrap();
-        assert_eq!(data.len(), 32);  // Size of compressed empty chunk
+        assert_eq!(data.len(), 32); // Size of compressed empty chunk
     }
 
     #[test]
@@ -50,7 +48,7 @@ mod test {
         let comp_task = CompressTask {
             data: vec![0, 1, 2, 3, 4],
             length: 5,
-            result: Vec::new()
+            result: Vec::new(),
         };
         let comp_result = Arc::new(CompressFuture::new());
 

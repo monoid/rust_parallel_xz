@@ -1,16 +1,15 @@
-use std::io;
-use std::fmt;
 use std::error::Error;
+use std::fmt;
+use std::io;
+use std::sync::mpsc::{Receiver, RecvError, SyncSender};
 use std::sync::{Arc, Condvar, Mutex};
-use std::sync::mpsc::{Receiver, SyncSender, RecvError};
-
 
 #[derive(Debug)]
 pub enum ApplicationError {
     IOError(io::Error),
     MutexError,
     MpscSendError,
-    MpscRecvError(RecvError)
+    MpscRecvError(RecvError),
 }
 
 impl fmt::Display for ApplicationError {
@@ -40,7 +39,7 @@ pub struct SpareData {
 
 pub struct CompressFuture {
     condvar: Condvar,
-    mutex: Mutex<Option<Result<(InputData, OutputData), ApplicationError>>>
+    mutex: Mutex<Option<Result<(InputData, OutputData), ApplicationError>>>,
 }
 
 pub struct CompressTask {
@@ -58,9 +57,7 @@ impl CompressFuture {
     }
 
     pub fn wait(&self) -> Result<(InputData, OutputData), ApplicationError> {
-        let mut complete = self.mutex.lock().or(
-            Err(ApplicationError::MutexError)
-        )?;
+        let mut complete = self.mutex.lock().or(Err(ApplicationError::MutexError))?;
         while (*complete).is_none() {
             complete = self.condvar.wait(complete).unwrap();
         }
@@ -84,7 +81,6 @@ impl CompressTask {
         }
     }
 }
-
 
 pub type SpareDataQueueReceiver = Receiver<SpareData>;
 pub type SpareDataQueueSender = SyncSender<SpareData>;

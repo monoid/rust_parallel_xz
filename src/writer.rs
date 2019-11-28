@@ -9,7 +9,7 @@ pub fn writer_loop<W: Write>(
     for task in inp_que.iter() {
         let (buf, result) = task.wait().or(Err(ApplicationError::MutexError))?;
         output
-            .write(result.as_slice())
+            .write(&result[..])
             .map_err(|e| ApplicationError::IOError(e))?;
         output.flush().map_err(|e| ApplicationError::IOError(e))?;
         out_que

@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use threadpool::ThreadPool;
 
-pub fn init_spare_queue(
+pub fn init_spares_queue(
     buffer_size: usize,
     queue_size: usize,
 ) -> (SpareDataQueueSender, SpareDataQueueReceiver) {
@@ -35,6 +35,7 @@ pub fn reader_loop<R: Read>(
     pool: ThreadPool,
     compress_level: u32, // TODO compressor factory instead
 ) -> (SpareDataQueueReceiver, Result<(), ApplicationError>) {
+    // We call another function to circumvent too strict borrowchecker.
     let res = reader_loop_nested(input, &inp_que, out_que, pool, compress_level);
     (inp_que, res)
 }
@@ -46,7 +47,8 @@ fn reader_loop_nested<R: Read>(
     pool: ThreadPool,
     compress_level: u32,
 ) -> Result<(), ApplicationError> {
-    // This flag prevents from sending final empty chunk if file is not empty
+    // This flag allows us to send an empty chunk if file is empty.
+    // Otherwise we will get empty output that is not OK.
     let mut has_any_data = false;
 
     loop {

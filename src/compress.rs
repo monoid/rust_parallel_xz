@@ -10,7 +10,7 @@ pub fn compress_data(task: CompressTask, comp_result: Arc<CompressFuture>, level
     result.clear();
 
     let mut enc = XzEncoder::new(result, level);
-    let (bytes, _) = data.as_slice().split_at(task.length);
+    let bytes = &data[..task.length];
 
     comp_result.notify(
         enc.write(bytes)

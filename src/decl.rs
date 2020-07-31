@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::fmt;
 use std::io;
 use std::sync::mpsc::{Receiver, RecvError, SyncSender};
@@ -14,18 +13,16 @@ pub enum ApplicationError {
 
 impl fmt::Display for ApplicationError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "ApplicationError: {}", self.description())
-    }
-}
-
-impl Error for ApplicationError {
-    fn description(&self) -> &str {
-        match *self {
-            ApplicationError::IOError(ref e) => e.description(),
-            ApplicationError::MutexError => "Internal error: mutex",
-            ApplicationError::MpscSendError => "Internal error: mpsc",
-            ApplicationError::MpscRecvError(ref e) => e.description(),
-        }
+        write!(
+            f,
+            "ApplicationError: {}",
+            match self {
+                ApplicationError::IOError(ref e) => e.to_string(),
+                ApplicationError::MutexError => "Internal error: mutex".to_string(),
+                ApplicationError::MpscSendError => "Internal error: mpsc".to_string(),
+                ApplicationError::MpscRecvError(ref e) => e.to_string(),
+            }
+        )
     }
 }
 

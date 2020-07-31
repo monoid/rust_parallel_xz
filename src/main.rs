@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 mod compress;
 mod decl;
 mod reader;

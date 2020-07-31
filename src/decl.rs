@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 use std::fmt;
 use std::io;
 use std::sync::mpsc::{Receiver, RecvError, SyncSender};

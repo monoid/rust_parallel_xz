@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 use super::compress::compress_data;
 use super::decl::*;
 

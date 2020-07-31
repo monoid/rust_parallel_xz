@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 use super::decl::*;
 
 use std::io::Write;

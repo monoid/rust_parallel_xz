@@ -74,9 +74,9 @@ impl CompressFuture {
 impl CompressTask {
     pub fn new(data: InputData, length: usize, result: OutputData) -> CompressTask {
         CompressTask {
-            data: data,
-            length: length,
-            result: result,
+            data,
+            length,
+            result,
         }
     }
 }

@@ -12,12 +12,12 @@ pub fn writer_loop<W: Write>(
         let (buf, result) = task.wait().or(Err(ApplicationError::MutexError))?;
         output
             .write(&result[..])
-            .map_err(|e| ApplicationError::IOError(e))?;
-        output.flush().map_err(|e| ApplicationError::IOError(e))?;
+            .map_err(ApplicationError::IOError)?;
+        output.flush().map_err(ApplicationError::IOError)?;
         out_que
             .send(SpareData {
                 data: buf,
-                result: result,
+                result,
             })
             .or(Err(ApplicationError::MpscSendError))?;
     }

@@ -15,15 +15,14 @@ pub fn init_spares_queue(
 ) -> (SpareDataQueueSender, SpareDataQueueReceiver) {
     let (send, recv) = mpsc::sync_channel(queue_size);
     for _ in 0..queue_size {
-        let mut data: Vec<u8> = Vec::with_capacity(buffer_size);
-        data.resize(buffer_size, 0);
+        let data = vec![0; buffer_size];
         send.send(SpareData {
-            data: data,
+            data,
             result: Vec::new(),
         })
         .unwrap();
     }
-    return (send, recv);
+    (send, recv)
 }
 
 pub fn init_task_queue(cpu_count: usize) -> (WriterDataSender, WriterDataReceiver) {
@@ -56,10 +55,10 @@ fn reader_loop_nested<R: Read>(
     loop {
         let mut buf = inp_que
             .recv()
-            .map_err(|e| ApplicationError::MpscRecvError(e))?;
+            .map_err(ApplicationError::MpscRecvError)?;
         let length = input
             .read(&mut buf.data)
-            .map_err(|e| ApplicationError::IOError(e))?;
+            .map_err(ApplicationError::IOError)?;
         if length == 0 && has_any_data {
             return Ok(());
         } else {

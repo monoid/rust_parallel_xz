@@ -53,9 +53,7 @@ fn reader_loop_nested<R: Read>(
     let mut has_any_data = false;
 
     loop {
-        let mut buf = inp_que
-            .recv()
-            .map_err(ApplicationError::MpscRecvError)?;
+        let mut buf = inp_que.recv().map_err(ApplicationError::MpscRecvError)?;
         let length = input
             .read(&mut buf.data)
             .map_err(ApplicationError::IOError)?;

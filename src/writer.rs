@@ -15,10 +15,7 @@ pub fn writer_loop<W: Write>(
             .map_err(ApplicationError::IOError)?;
         output.flush().map_err(ApplicationError::IOError)?;
         out_que
-            .send(SpareData {
-                data: buf,
-                result,
-            })
+            .send(SpareData { data: buf, result })
             .or(Err(ApplicationError::MpscSendError))?;
     }
     Ok(())

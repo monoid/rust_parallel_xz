@@ -19,21 +19,21 @@ fn main() {
         .author("Ivan Boldyrev <lispnik@gmail.com>")
         .arg(
             Arg::with_name("threads_num")
-                .short("t")
+                .short('t')
                 .long("threads-num")
                 .takes_value(true)
                 .help("Compression threads number (default: number of CPUs + 1)"),
         )
         .arg(
             Arg::with_name("buffer_size")
-                .short("b")
+                .short('b')
                 .long("buffer-size")
                 .takes_value(true)
                 .help("Buffer size for each thread in megabytes (default: 1)"),
         )
         .arg(
             Arg::with_name("compress_level")
-                .short("c")
+                .short('c')
                 .long("compress-level")
                 .takes_value(true)
                 .help("XZ compression level (default: 3)"),

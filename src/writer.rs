@@ -9,14 +9,12 @@ pub fn writer_loop<W: Write>(
     out_que: SpareDataQueueSender,
 ) -> Result<(), ApplicationError> {
     for task in inp_que.iter() {
-        let (buf, result) = task.wait().or(Err(ApplicationError::MutexError))?;
-        output
-            .write(&result[..])
-            .map_err(ApplicationError::IOError)?;
-        output.flush().map_err(ApplicationError::IOError)?;
+        let (buf, result) = task.wait().or(Err(ApplicationError::Mutex))?;
+        output.write(&result[..]).map_err(ApplicationError::IO)?;
+        output.flush().map_err(ApplicationError::IO)?;
         out_que
             .send(SpareData { data: buf, result })
-            .or(Err(ApplicationError::MpscSendError))?;
+            .or(Err(ApplicationError::MpscSend))?;
     }
     Ok(())
 }

@@ -53,10 +53,8 @@ fn reader_loop_nested<R: Read>(
     let mut has_any_data = false;
 
     loop {
-        let mut buf = inp_que.recv().map_err(ApplicationError::MpscRecvError)?;
-        let length = input
-            .read(&mut buf.data)
-            .map_err(ApplicationError::IOError)?;
+        let mut buf = inp_que.recv().map_err(ApplicationError::MpscRecv)?;
+        let length = input.read(&mut buf.data).map_err(ApplicationError::IO)?;
         if length == 0 && has_any_data {
             return Ok(());
         } else {
@@ -70,7 +68,7 @@ fn reader_loop_nested<R: Read>(
             has_any_data = true;
             out_que
                 .send(comp_result)
-                .or(Err(ApplicationError::MpscSendError))?;
+                .or(Err(ApplicationError::MpscSend))?;
         }
     }
 }

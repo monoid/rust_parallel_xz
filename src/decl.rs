@@ -1,31 +1,21 @@
 #![forbid(unsafe_code)]
 
-use std::fmt;
 use std::io;
 use std::sync::mpsc::{Receiver, RecvError, SyncSender};
 use std::sync::{Arc, Condvar, Mutex};
 
-#[derive(Debug)]
-pub enum ApplicationError {
-    IOError(io::Error),
-    MutexError,
-    MpscSendError,
-    MpscRecvError(RecvError),
-}
+use thiserror::Error;
 
-impl fmt::Display for ApplicationError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "ApplicationError: {}",
-            match self {
-                ApplicationError::IOError(ref e) => e.to_string(),
-                ApplicationError::MutexError => "Internal error: mutex".to_string(),
-                ApplicationError::MpscSendError => "Internal error: mpsc".to_string(),
-                ApplicationError::MpscRecvError(ref e) => e.to_string(),
-            }
-        )
-    }
+#[derive(Debug, Error)]
+pub enum ApplicationError {
+    #[error("IO error {0:?}")]
+    IO(#[from] io::Error),
+    #[error("Internal error: mutex")]
+    Mutex,
+    #[error("Internal error: mpsc")]
+    MpscSend,
+    #[error("Internal error: mpsc {0:?}")]
+    MpscRecv(RecvError),
 }
 
 pub type InputData = Vec<u8>;
@@ -56,7 +46,7 @@ impl CompressFuture {
     }
 
     pub fn wait(&self) -> Result<(InputData, OutputData), ApplicationError> {
-        let mut complete = self.mutex.lock().or(Err(ApplicationError::MutexError))?;
+        let mut complete = self.mutex.lock().or(Err(ApplicationError::Mutex))?;
         while (*complete).is_none() {
             complete = self.condvar.wait(complete).unwrap();
         }

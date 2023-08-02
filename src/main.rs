@@ -6,53 +6,35 @@ mod decl;
 mod reader;
 mod writer;
 
-use clap::{App, Arg};
+use clap::Parser;
 use std::io;
 use std::thread;
 use threadpool::ThreadPool;
 
 const DEFAULT_COMPRESS_LEVEL: u32 = 3;
-const DEFAULT_BUFFER_SIZE: usize = 1 << 20;
+const DEFAULT_BUFFER_SIZE_MB: usize = 1;
+
+#[derive(Parser)]
+#[command(author, version, about)]
+struct Args {
+    /// Number of compression threads [default: number of CPUs + 1]
+    #[arg(short, long)]
+    threads_num: Option<usize>,
+    /// Buffer size for each thread in megabytes
+    #[arg(short, long, default_value_t = DEFAULT_BUFFER_SIZE_MB)]
+    buffer_size: usize,
+    // TODO a parser that accepts only valid values
+    /// XZ compression level
+    #[arg(short, long, default_value_t = DEFAULT_COMPRESS_LEVEL)]
+    compress_level: u32,
+}
 
 fn main() {
-    let matches = App::new("Parallel XZ compressor")
-        .version("0.1.0")
-        .author("Ivan Boldyrev <lispnik@gmail.com>")
-        .arg(
-            Arg::with_name("threads_num")
-                .short('t')
-                .long("threads-num")
-                .takes_value(true)
-                .help("Compression threads number (default: number of CPUs + 1)"),
-        )
-        .arg(
-            Arg::with_name("buffer_size")
-                .short('b')
-                .long("buffer-size")
-                .takes_value(true)
-                .help("Buffer size for each thread in megabytes (default: 1)"),
-        )
-        .arg(
-            Arg::with_name("compress_level")
-                .short('c')
-                .long("compress-level")
-                .takes_value(true)
-                .help("XZ compression level (default: 3)"),
-        )
-        .get_matches();
+    let args = Args::parse();
 
-    let compress_level = match matches.value_of("compress_level") {
-        None => DEFAULT_COMPRESS_LEVEL,
-        Some(s) => s.parse::<u32>().expect("Malformed compress-level"),
-    };
-    let nthread = match matches.value_of("threads_num") {
-        None => num_cpus::get() + 1,
-        Some(s) => s.parse::<usize>().expect("Malformed threads-num"),
-    };
-    let buffer_size = match matches.value_of("buffer_size") {
-        None => DEFAULT_BUFFER_SIZE,
-        Some(s) => 1024 * 1024 * s.parse::<usize>().expect("Malformed buffer-size"),
-    };
+    let compress_level = args.compress_level;
+    let nthread = args.threads_num.unwrap_or_else(|| num_cpus::get() + 1);
+    let buffer_size = 1024 * 1024 * args.buffer_size;
 
     let (free_recvr, free_sendr) = reader::init_spares_queue(
         buffer_size,
